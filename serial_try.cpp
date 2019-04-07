@@ -1,34 +1,31 @@
 #include <modbus.h>
+#include <cmath>
 #include <iostream>
 #include <time.h>
 #include <unistd.h>
+#include <ctime>
+#include <sys/time.h>
 
 #define PORTNAME "dev/ttyUSB0"
 #define YOUR_DEVICE_ID 1
 
 using namespace std;
 
-unsigned int crc_chk(unsigned char *data, unsigned char length)
+
+long gettimes()
 {
-	int i, j;
-	unsigned int crc_reg = 0xFFFF;
-	while (length--)
-	{
-		crc_reg ^= *data++;
-		for (j = 0; j < 8; j++)
-		{
-			if (crc_reg & 0x01)
-			{
-				crc_reg = (crc_reg >> 1) ^ 0xA001;
-			}
-			else
-			{
-				crc_reg = crc_reg >> 1;
-			}
-		}
-	}
-	return crc_reg;
+struct timespec time1 = {0, 0};
+    clock_gettime(CLOCK_REALTIME, &time1);
+    long nows = time1.tv_nsec+ time1.tv_sec *1000000000;
+    return nows;
 }
+void Delay(int time)//time*1000为秒数 
+{ 
+  clock_t now = clock(); 
+
+ while( clock() - now < time); 
+} 
+
 
 int main(int argc, char **argv)
 {
@@ -36,7 +33,6 @@ int main(int argc, char **argv)
 	m_ac = modbus_new_rtu("/dev/ttyUSB0", 115200, 'O', 8, 1);
 	modbus_set_debug(m_ac, 1); //设置为1将可以看到调试信息
 
-	
 	modbus_set_response_timeout(m_ac, 1, 0); //设置等待延时时间
 
 	if (m_ac == NULL)
@@ -60,27 +56,117 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// int nb = 8;
-	// unsigned int chk;
-	// uint8_t *a;
-	// a = new uint8_t[nb];
+	double amplitude = 15 ;
+	double circle = 1.5;
+	double interval = 0.03; //以100ms为周期
+	int delay_time =(int)(interval*1000000);
+    double time=0;
+	int pulse_count = (int)(2000000.0/120.0*interval);
+	double last_position =0;
+	double now_position;
+	double position_error;
+	double velocity;
+	int numerator;
+	modbus_write_register(m_ac,123,pulse_count);
+	modbus_write_register(m_ac, 98, 100); //电子齿轮比调大
+	
+	modbus_write_register(m_ac, 70, 32690); //son 为0时是ON，电机上电
+	modbus_write_register(m_ac, 71, 32511);//选取内部位置指令1
+	
+	while(1)
+	{
+		modbus_write_register(m_ac, 71, 32511); 
+		time+=interval;
+		now_position = amplitude -amplitude*std::cos(time/circle*2*M_PI);
+		cout << now_position<< endl;
+		position_error = now_position - last_position;
+		last_position = now_position;
+		if(position_error>0)
+		{
+			modbus_write_register(m_ac,123,pulse_count);
+			//  cout << "++++++++++++++"<< pulse_count<< endl;
+		}
+		else
+		{
+			modbus_write_register(m_ac,123,-pulse_count);
+			//  cout << "--------------"<< pulse_count<< endl;
+			
+		}
+		velocity = position_error/interval;
+		// cout << "velocity" << velocity <<endl;
+		numerator = (int)(velocity/27.0*100.0);
+		if(numerator<0)
+		{
+			numerator = -numerator;
+		}
+		else if(numerator ==0)
+		{
+			numerator = 1;
+		}
+		// cout << "numerator"<< numerator <<endl;
+		modbus_write_register(m_ac, 98, numerator); //电子齿轮比调节   ///////////////////////hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+		modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+		// cout << "delay_time"<< delay_time << endl;
+		Delay(delay_time);   ///////////////////////hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+	};
 
-	// uint8_t sp[8] = {0x01, 0x06, 0x00, 0x4a, 0x00, 0x28};
-	// for(int i =0; i<8;i++)
-	// {
-	// 	a[i] =sp[i];
-	// }
-	// chk =crc_chk(a,6);
-	// a[6] = uint16_t(chk);
-	// a[7] = (uint8_t)((int(chk) - int(a[6]))/int(256));
 
-	uint16_t *dest = new uint16_t;
-	// modbus_read_registers(m_ac,117,1,dest);  cout << *dest << endl;
-	modbus_write_register(m_ac, 70, 32690);
-	modbus_write_register(m_ac, 71, 32511);
-	modbus_write_register(m_ac, 71, 31487);
-	sleep(3);
-	modbus_write_register(m_ac, 71, 32691);
+		// pulse_count  =833;
+ 	    // Delay(1000000);
+	    // modbus_write_register(m_ac,123,-pulse_count);
+		// modbus_write_register(m_ac, 98, 10); //电子齿轮比调大
+		// modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+		// Delay(50000);
+
+		// modbus_write_register(m_ac, 71, 32511); 
+		// modbus_write_register(m_ac,123,	pulse_count);
+		// modbus_write_register(m_ac, 98, 10); //电子齿轮比调大
+		// modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+		// Delay(50000);
+
+		// modbus_write_register(m_ac, 71, 32511); 
+		// modbus_write_register(m_ac,123,-pulse_count);
+		// modbus_write_register(m_ac, 98, 10); //电子齿轮比调大
+		// modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+		// Delay(50000);
+
+		// modbus_write_register(m_ac, 71, 32511); 
+		// modbus_write_register(m_ac,123,	pulse_count);
+		// modbus_write_register(m_ac, 98, 10); //电子齿轮比调大
+		// modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+		
+		// Delay(2000000);
+
+	 	// modbus_write_register(m_ac, 70, 32691);	//son 为0时是ON，电机断电
+
+
+
+
+	// uint16_t *dest = new uint16_t;
+	// // modbus_read_registers(m_ac,117,1,dest);  cout << *dest << endl;
+	// 	long now=gettimes();
+	// 	modbus_write_register(m_ac, 70, 32690); //son 为0时是ON，电机上电
+	// 	long now0=gettimes();
+	// 	modbus_write_register(m_ac, 71, 32511);//选取内部位置指令1
+	// 	long now1=gettimes();
+	// 	modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+	// 	long now2=gettimes();
+	// 	cout <<"now "<<now<<endl;
+	// 	cout <<"now0 "<<now<<endl;
+	// 	cout <<"now1 "<<now<<endl;
+	// 	cout <<"now2 "<<now<<endl;
+
+	// 	cout << "here" << endl;
+	// 	sleep(10);
+	// 	modbus_write_register(m_ac, 98, 18); //电子齿轮比调大
+	// 	modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+	// 	sleep(10000);
+	// 	cout << "here" << endl;	
+	// 	cout << "time pass" << endl;
+	// 	modbus_write_register(m_ac, 71, 32767); //全部默认
+	// 	modbus_write_register(m_ac, 70, 32691);	//son 为0时是ON，电机断电
+		
+
 
 	//std::cout <<hex<< a[0] << a[1] << a[2] << a[3] << a[4] << a[5] << a[6] << a[7] <<endl;
 
