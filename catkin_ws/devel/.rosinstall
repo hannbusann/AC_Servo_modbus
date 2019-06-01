@@ -1,2 +1,2 @@
 - setup-file:
-    local-name: /home/fw/AC_Servo_modbus/catkin_ws/devel/setup.sh
+    local-name: /home/tim/fanwu/AC_Servo_modbus/catkin_ws/devel/setup.sh

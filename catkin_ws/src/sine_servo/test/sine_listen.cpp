@@ -28,7 +28,7 @@ double now_th2d = 0;
 double now_angle = 0;
 int hh =0;
 
-FILE *fpWrite = fopen("/home/fw/lab_2sensor_arduino/encoder_talker/src/encoder_talker/data/data1.txt", "w");
+FILE *fpWrite = fopen("/home/tim/fanwu/AC_Servo_modbus/catkin_ws/src/sine_servo/data/data_sine_1.txt", "w");
 
 
 unsigned long gettimes()
@@ -81,7 +81,13 @@ int main(int argc, char **argv)
   ROS_FATAL("rtu new");
   modbus_set_debug(m_ac, 1);               //设置为1将可以看到调试信息
   modbus_set_response_timeout(m_ac, 1, 0); //设置等待延时时间
-
+  int rc=modbus_set_slave(m_ac,YOUR_DEVICE_ID);
+  if(modbus_connect(m_ac) == -1)
+  {
+	modbus_free(m_ac);
+	return -1;
+  }
+  ROS_FATAL("connect");
     double amplitude = 15 ;
 	double circle = 1.5;
 	double interval = 0.01; //以100ms为周期
@@ -121,7 +127,7 @@ int main(int argc, char **argv)
 		}
 		velocity = position_error/interval;
 		// cout << "velocity" << velocity <<endl;
-		numerator = (int)(velocity/27.0*100.0);
+		numerator = (int)(velocity/24.0*100.0);
 		if(numerator<0)
 		{
 			numerator = -numerator;
