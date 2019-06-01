@@ -105,9 +105,9 @@ int main(int argc, char **argv)
 		}
 		// cout << "numerator"<< numerator <<endl;
 		modbus_write_register(m_ac, 98, numerator); //电子齿轮比调节   ///////////////////////hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
-		modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令
+		modbus_write_register(m_ac, 71, 31487); //ptriger触发内部指令  
 		// cout << "delay_time"<< delay_time << endl;
-		Delay(delay_time);   ///////////////////////hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+		Delay(delay_time);                                          ///////////////////////hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
 	};
 
 

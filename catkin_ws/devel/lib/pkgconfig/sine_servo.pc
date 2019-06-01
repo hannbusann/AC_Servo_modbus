@@ -1,0 +1,8 @@
+prefix=/home/fw/AC_Servo_modbus/catkin_ws/devel
+
+Name: sine_servo
+Description: Description of sine_servo
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/fw/AC_Servo_modbus/catkin_ws/devel/lib 
+Requires: 
